@@ -14,3 +14,10 @@ python -m venv venv_eml
 .\venv_eml\Scripts\activate
 pip install -r requirements.txt
 ```
+
+or 
+```
+python.exe -m pip install git+https://github.com/oberron/pyPST2EML
+```
+
+## USAGE
