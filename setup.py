@@ -20,17 +20,17 @@ setup(name='pyPST2EML',
 """
 
 import setuptools
-import src
+import pyPST2EML
 from os.path import abspath, join, pardir
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
     
-package_dir = abspath(join(__file__,pardir,"src"))
+package_dir = abspath(join(__file__,pardir,"pyPST2EML"))
     
 setuptools.setup(
     name="pyPST2EML",
-    version=src.__version__,
+    version=pyPST2EML.__version__,
     author="Matt-CHV",
     author_email="contact@matthieuchevrier.com",
     description="A small package to convert PST to folders of text searchable files with .eml (RFC-822)",
