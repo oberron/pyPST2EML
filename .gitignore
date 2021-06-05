@@ -1,3 +1,7 @@
+# WINDOWS local scripts
+*.cmd
+## PROJECT locals
+pyPST2EML/test_bu/*
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

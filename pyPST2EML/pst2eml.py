@@ -45,16 +45,21 @@ try:
 except:
     print("you might need to install pywin32")
     print(">python -m pip install pywin32")
+    print("if this was not enough you might need to run")
+    print("python -m pip install --upgrade pywin32==225")
+    print("then")
+    print("python venv\Scripts\pywin32_postinstall.py -install")
     raise
 
-folder = abspath(join(dirname(__file__), "test"))
 stop_error = False
 
 def scan_email_property(msg_strings,prop_vals):
     result = ""
     for line in msg_strings:
         for prop_val in prop_vals:
-            if line.find(prop_val) >= 0:
+            if line.find(prop_val) >= 0 and line.find(prop_val) <= 20:
+                if line.find(prop_val)>0:
+                    logging.warning("property value found but not at beggining of line")
                 result = ":".join(line.split(":")[1:])
                 return result
     return result
@@ -68,6 +73,64 @@ def scan_email_receive_header(msg_strings):
             result = dow+second_line.split(dow)[1]
             return result
     return result
+
+def get_sentdate(msg_strings,msg,eml_fp,debug):
+    """ Gets the Send_Date """
+    SentDate = None
+    SentDate_property = scan_email_property(msg_strings,["Date:","Sent: ","DTSTART"])
+    SentDate_header =  scan_email_receive_header(msg_strings)
+    if debug:
+        print(f"\t\tSentDate_property: {SentDate_property}")
+        print(f"\t\tSentDate_header: {SentDate_property}")
+    try:
+        #most appropriate is to get the sent date from the email
+        SentDate  = msg.get("Date")
+    except:
+        SentDate=None   
+
+    if SentDate is None:
+        if len(SentDate_property)>len(SentDate_header):
+            SentDate = SentDate_property
+        else:
+            SentDate = SentDate_header
+    if SentDate == "" or SentDate is None and eml_fp.find(".ics")>=0:
+        for line in msg_strings:
+            if line.find("DTSTAMP") >= 0:
+                SentDate = ":".join(line.split(":")[1:]).replace("\n","")
+    if debug:
+        print(f"\t\tSentDate: {SentDate}")
+    if SentDate  == "" or SentDate is None:
+        logmsg = "Cannot get SENT DATE: field from :%s"%(eml_fp)
+        logging.error(logmsg)
+        raise Exception("HeaderError",logmsg)
+
+    SentDate = SentDate.replace("\n","")
+    SentDate = SentDate.replace("\r","")
+    SentDate = SentDate.lstrip()
+    SentDate = SentDate.rstrip()
+
+    #handle string formatting not handled by dateutil_parse
+    for tz in [" W. Europe Standard Time"," (GMT)", ' "GMT"']:
+        if SentDate.find(tz)>=0:
+            SentDate = SentDate.replace(tz,"")
+    #handle DOW not handled by dateutil_parse
+    weird_dow = {"Wen":"Wed"}
+    for dow in weird_dow:
+        if SentDate.find(dow)>=0:
+            SentDate=SentDate.replace(dow,weird_dow[dow])
+            
+    if debug:
+        print("SentDate before dateutil_parse",SentDate)
+    try:
+        emailtime = dateutil_parse(SentDate)
+        if debug:
+            print("\t\temailtime parsed by dateutil_parse",emailtime)
+    except:
+        logmsg = "Cannot get SENT DATE: field from :%s"%(eml_fp)
+        logging.error(logmsg)
+        raise Exception("HeaderError",msg)
+        
+    return SentDate
 
 def eml_get_parameters(eml_fp,debug=False):
     """ Gets the Params from the email stored as text file on HDD
@@ -163,7 +226,7 @@ def eml_get_parameters(eml_fp,debug=False):
         for line in msg_strings:
             if line.find("SUMMARY") >= 0:
                 Subject = ":".join(line.split(":")[1:]).replace("\n","")
-
+    
     if Subject == "" or Subject is None:
         LogMessage = "Cannot get SUBJECT: field from :%s"%(eml_fp)
         logging.warning(LogMessage)
@@ -213,54 +276,7 @@ def eml_get_parameters(eml_fp,debug=False):
 
 
     ######## SENT DATE
-    """ Gets the Send_Date """
-    SentDate = None
-    SentDate_property = scan_email_property(msg_strings,["Date:","Sent: ","DTSTART"])
-    SentDate_header =  scan_email_receive_header(msg_strings)
-    if debug:
-        print(f"\t\tSentDate_property: {SentDate_property}")
-        print(f"\t\tSentDate_header: {SentDate_property}")
-    try:
-        #most appropriate is to get the sent date from the email
-        SentDate  = msg.get("Date")
-    except:
-        SentDate=None
-    if SentDate is None:
-        if len(SentDate_property)>len(SentDate_header):
-            SentDate = SentDate_property
-        else:
-            SentDate = SentDate_header
-    if debug:
-        print(f"\t\tSentDate: {SentDate}")
-    if SentDate  == "" or SentDate is None:
-        logmsg = "Cannot get SENT DATE: field from :%s"%(eml_fp)
-        logging.error(logmsg)
-        raise Exception("HeaderError",logmsg)
-
-    SentDate = SentDate.replace("\n","")
-    SentDate = SentDate.replace("\r","")
-    SentDate = SentDate.lstrip()
-    SentDate = SentDate.rstrip()
-
-    #handle string formatting not handled by dateutil_parse
-    for tz in [" W. Europe Standard Time"," (GMT)", ' "GMT"']:
-        if SentDate.find(tz)>=0:
-            SentDate = SentDate.replace(tz,"")
-    #handle DOW not handled by dateutil_parse
-    weird_dow = {"Wen":"Wed"}
-    for dow in weird_dow:
-        if SentDate.find(dow)>=0:
-            SentDate=SentDate.replace(dow,weird_dow[dow])
-    if debug:
-        print("SentDate before dateutil_parse",SentDate)
-    try:
-        emailtime = dateutil_parse(SentDate)
-        if debug:
-            print("\t\temailtime parsed by dateutil_parse",emailtime)
-    except:
-        logmsg = "Cannot get SENT DATE: field from :%s"%(eml_fp)
-        logging.error(logmsg)
-        raise Exception("HeaderError",msg)
+    SentDate = get_sentdate(msg_strings,msg,eml_fp,debug)
 
 
     #sent_to,from_sender, title, sent_date
@@ -461,6 +477,7 @@ def make_eml_search_friendly(eml_folder): #,send_to, sent_from, subject, sent_da
                         raise
 
 def pst_2_eml(**kwargs):
+    """ wrapper around the readpst.exe """
 
     PST_folder = kwargs["folder"]
     PST_file   = kwargs["fn"]
@@ -468,6 +485,9 @@ def pst_2_eml(**kwargs):
         EML_folder = kwargs["EML_folder"]
     else:
         EML_folder = abspath(join(PST_folder,"eml"))
+    
+    if not os.path.exists(EML_folder):
+        os.mkdir(EML_folder)
     #override_eml = kwargs["override_eml"]
     #old_archives = kwargs["old_archives"]
 
@@ -481,7 +501,9 @@ def pst_2_eml(**kwargs):
             raise Exception(FileNotFoundError)
     else:
         print("pst file path not found:",pst_full_path)
+        
 if __name__=="__main__":
+    exit()
     parser = argparse.ArgumentParser(description='Processing emails for easier desktop searches')
     parser.add_argument('--pst', dest='PST_nEML',type=str2bool,
                     help='processing .PST (Y) or folder of .eml/.ics (N) (default: N)', default = "N")
