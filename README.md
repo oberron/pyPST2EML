@@ -17,14 +17,17 @@ pip install -r requirements.txt
 
 or 
 
-> python.exe -m pip install git+https://github.com/oberron/pyPST2EML
+```bash
+python.exe -m pip install git+https://github.com/oberron/pyPST2EML
+```
 
-
-![][https://t4.ftcdn.net/jpg/01/01/48/09/240_F_101480925_dWEgCvJIagLTy36eiBmoyIRmxoqcKNeo.jpg]
+![](https://t4.ftcdn.net/jpg/01/01/48/09/240_F_101480925_dWEgCvJIagLTy36eiBmoyIRmxoqcKNeo.jpg)
 
 once installed with pip you need to run the post install script
 
-> python venv\Scripts\pywin32_postinstall.py -install
+```bash
+python venv\Scripts\pywin32_postinstall.py -install
+```
 
 ## USAGE
 
@@ -45,6 +48,6 @@ once installed with pip you need to run the post install script
 
 connect with a distributed database for fast querying of the database content. Example include but not limited to:
 
-```
-* rust
-```
+* Sonic (rust written alternative to ElasticSearch)
+* ElasticSearch (though recent licensing changes make it less appealing)
+
