@@ -1,0 +1,17 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:LibPST v0.6.45
+BEGIN:VEVENT
+DTSTAMP:20210526T182757Z
+CREATED:20191021T192854Z
+LAST-MOD:20191117T130432Z
+SUMMARY:4Q SEM Town Hall\,  Passcode: 32973094# 
+DESCRIPTION:\n \n 4Q Dept Hall\nAttendee Only - Click to join: https://example.webex.com/demo2/j.php?MTID=m39a8b07cafa88222eb3c2bea6cebb244 \nTeleconference: Dial in # (Toll\, TollFree) 972.972.972\, \nParticipant Passcode: 32973094 # \nDate: Tuesday\, November 12\, 2019 \n\nNote:\n1. YOUR PHONE WILL BE MUTED during this event. \n2. Use CHAT to HOST to have your questions answered by presenter. \n \n \n
+DTSTART;VALUE=DATE-TIME:20191112T143000Z
+DTEND;VALUE=DATE-TIME:20191112T160000Z
+LOCATION:South Campus
+STATUS:CONFIRMED
+CATEGORIES:NONE
+END:VEVENT
+END:VCALENDAR
+
