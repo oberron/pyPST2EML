@@ -29,6 +29,7 @@ from email.header import decode_header
 import logging
 import os
 from os.path import abspath,  basename, dirname, exists, join, pardir, splitext
+from pathlib import Path
 from quopri import decodestring
 from subprocess import call
 from time import mktime, sleep, strptime
@@ -294,7 +295,7 @@ def incrementalfilename(path,fn):
     new_fn = fnb+'['+str(final)+'].'+fne
     return new_fn
 
-def rename_eml(eml_fp,subject):
+def rename_eml(eml_fp,subject,ignore_ext = True, debug=False):
     """ rename the file on the HDD
     Parameters:
     -----------
@@ -308,9 +309,15 @@ def rename_eml(eml_fp,subject):
         full path (folder and filename with extension)
     """
     folder_path = dirname(eml_fp)
-    fp_ext = splitext(eml_fp)[1]
+    fp_ext = Path(eml_fp).suffix
+    if ignore_ext:
+        fp_ext = ".eml"
 
     new_eml_fp = abspath(join(folder_path,subject+fp_ext))
+    log_msg = f"315 subject: -{subject}-, extension -{fp_ext}-,\n\t\t fp -{new_eml_fp}-"
+    if debug:
+        print(log_msg)
+    logging.debug(log_msg)
     #windows seems to still have issues renaming when full path length >260
     #https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file#maximum-path-length-limitation
     if len(new_eml_fp)>260:
@@ -320,6 +327,8 @@ def rename_eml(eml_fp,subject):
         #check if the file name already exists and create a new one
         new_filename = incrementalfilename(folder_path,subject+fp_ext)
         new_eml_fp = abspath(join(folder_path,new_filename))
+    if debug:
+        print(f"new_eml_fp {new_eml_fp}")
     try:
         os.rename(eml_fp,new_eml_fp)
     except:
@@ -401,6 +410,12 @@ def set_file_attributes(eml_fp, author, title,comments):
     ps=None
     pss=None
 
+def is_eml(send_to, sent_from, subject, sent_date):
+    if len(send_to)>3 and len(sent_from)>3 and len(subject)>=3 and len(sent_date)>8:
+        return True
+    else:
+        return False
+
 def str2bool(v):
     #credit https://stackoverflow.com/a/43357954/10567771
     if isinstance(v, bool):
@@ -412,7 +427,7 @@ def str2bool(v):
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
 
-def make_eml_search_friendly(eml_folder): #,send_to, sent_from, subject, sent_date,OldArchives=False):
+def make_eml_search_friendly(eml_folder,ignore_ext = False): #,send_to, sent_from, subject, sent_date,OldArchives=False):
     """ rename and change files creation date and attributes  to reflect email content
 	Parses files in emlpath and sets the file properties to the email properties
 	if OldArchives ==True: considers that the files have been copied by the OS (file restore, back-up restore, ...) without the properties and will go through all .eml files
@@ -425,9 +440,10 @@ def make_eml_search_friendly(eml_folder): #,send_to, sent_from, subject, sent_da
     None
     """
     old_root = ""
+    logging.debug(f"walking folder ignoring extension: {ignore_ext}")
     for root, directory, files in os.walk(eml_folder):
         for fn in files:
-            if fn.find(".eml")>=0 or fn.find(".ics")>=0:
+            if fn.find(".eml")>=0 or fn.find(".ics")>=0 or ignore_ext:
                 if not root==old_root:
                     print(f"processing folder {root}")
                     old_root = root
@@ -441,24 +457,28 @@ def make_eml_search_friendly(eml_folder): #,send_to, sent_from, subject, sent_da
                 log_msg = "***************327***sent_date: %s"%(sent_date)
                 logging.debug(log_msg)
 
-                try:
-                    new_eml_fp = rename_eml(eml_fp,subject)
-                except:
-                    log_msg = "failed renaming file for: %s"%eml_fp
-                    raise
-                try:
-                    set_file_attributes(new_eml_fp, sent_from,subject,comments = "TO:"+send_to )
-                except:
-                    log_msg = "failed updating file attrributes for: %s"%new_eml_fp
-                    logging.error(log_msg)
+                if (ignore_ext and is_eml(send_to, sent_from, subject, sent_date)) or not ignore_ext:
+                    #if we ignore ext need to verify this is an email to give it an .eml extension
+                    #in the case where other scripts have corrupted file names
 
-                try:
-                    change_creation_date(new_eml_fp,sent_date)
-                except:
-                    log_msg ="failed changing creation date: %s"%new_eml_fp
-                    logging.error(log_msg)
-                    if stop_error:
+                    try:
+                        new_eml_fp = rename_eml(eml_fp,subject,ignore_ext)
+                    except:
+                        log_msg = "failed renaming file for: %s"%eml_fp
                         raise
+                    try:
+                        set_file_attributes(new_eml_fp, sent_from,subject,comments = "TO:"+send_to )
+                    except:
+                        log_msg = "failed updating file attrributes for: %s"%new_eml_fp
+                        logging.error(log_msg)
+
+                    try:
+                        change_creation_date(new_eml_fp,sent_date)
+                    except:
+                        log_msg ="failed changing creation date: %s"%new_eml_fp
+                        logging.error(log_msg)
+                        if stop_error:
+                            raise
 
 def pst_2_eml(**kwargs):
 
@@ -493,6 +513,8 @@ if __name__=="__main__":
                     help='use the package provided libpst (default: Y)')
     parser.add_argument("--test","-t",dest='test',type=str, default = "N",
                     help='will run over test files')
+    parser.add_argument("--ignore","-i",dest='ignore',type=str2bool, default = "N",
+                    help='ignore file extensions (if N only processes .eml and .ics)')
     parser.add_argument("--verbose","-v",dest='verbosity',type=int,default=2)
 
     args,  unknown = parser.parse_known_args()
@@ -514,4 +536,4 @@ if __name__=="__main__":
     if myargs["PST_nEML"]:
         pst_2_eml(**myargs)
     else:
-        make_eml_search_friendly(myargs["folder"])
+        make_eml_search_friendly(myargs["folder"],myargs["ignore"])

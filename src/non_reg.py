@@ -1,4 +1,5 @@
 from os import rename
+from pathlib import Path
 
 from pst2eml import eml_get_parameters, rename_eml
 
@@ -21,7 +22,15 @@ def nonreg():
             {"name":"cannot_get_sent_date2",
             "sent_date":"Wed, 19 Sep 2001 16:42:32"},
             {"name":"senddate3",
-            "sent_date":"Fri, 24 Aug 2001 09:53:36 +0100"}
+            "sent_date":"Fri, 24 Aug 2001 09:53:36 +0100"},
+            {"name":"...",
+            "rename":"Y"},
+            {"name":"subject",
+            "subject":"",
+            "rename":"Y"},
+            {"name":"[1].[NEPTUNE][ASF-DSP] ASF-DSP documents for BL4&BL5",
+            "subject":"",
+            "rename":"Y"}
             ]
 
     errors=0
@@ -53,11 +62,12 @@ def nonreg():
         print(44,test)
         if "rename" in test:
             try:
-                new_eml_fp = rename_eml(eml_fp,subject)
+                new_eml_fp = rename_eml(eml_fp,subject,debug=True)
             except:
                 raise
             else:
-                rename(new_eml_fp,eml_fp)
+                print("change back",new_eml_fp,eml_fp)
+                rename_eml(new_eml_fp,Path(eml_fp).stem,debug=True)
 
 
     print(f"finished with {errors} error(s)")
