@@ -4,7 +4,8 @@ This small package leverages libpst to turn PST files into directories of .eml a
 The .eml and .ics files have their properties (author, creation date, and file name changed to reflect the email properties for easier search queries).
 
 ## REQUIREMENTS
-* LIBPST binaries for windows (can be found on the internet)
+* libratom python module
+* for LIBPST see libpst_lts branch
 * python (tested with python 3.8 32b on Win10)
 
 ## INSTALL
