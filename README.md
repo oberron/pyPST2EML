@@ -47,6 +47,8 @@ python venv\Scripts\pywin32_postinstall.py -install
 
 ## NEXT STEPS
 
+* Log warnings and errors to file and split console / file logging outputs
+
 connect with a distributed database for fast querying of the database content. Example include but not limited to:
 
 * Sonic (rust written alternative to ElasticSearch)

@@ -58,10 +58,12 @@ def scan_email_property(msg_strings,prop_vals):
     result = ""
     for line in msg_strings:
         for prop_val in prop_vals:
-            if line.find(prop_val) >= 0 and line.find(prop_val) <= 20:
+            #if line.find(prop_val) >= 0 and line.find(prop_val) <= 20:
+            #adding strip to handle cases where property is at begining of line but after tabs or spaces
+            if line.strip().find(prop_val) ==0:
                 if line.find(prop_val)>0:
                     logging.warning("property value found but not at beggining of line")
-                result = ":".join(line.split(":")[1:])
+                result = ":".join(line.strip().split(":")[1:])
                 return result
     return result
 
@@ -75,7 +77,7 @@ def scan_email_receive_header(msg_strings):
             return result
     return result
 
-def get_sentdate(msg_strings,msg,eml_fp,debug):
+def get_sentdate(msg_strings,msg,eml_fp,debug=True):
     """ Gets the Send_Date """
     SentDate = None
     SentDate_property = scan_email_property(msg_strings,["Date:","Sent: ","DTSTART"])
@@ -324,6 +326,8 @@ def rename_eml(eml_fp,subject,ignore_ext = True, debug=False):
     new_eml_fp: str
         full path (folder and filename with extension)
     """
+    subject = subject.replace("\n"," ").replace("\t"," ").replace("FW: ","").replace("RE: ","").replace(":"," ").replace("/","-").replace("\\","-").replace("*","-").replace("?","-").replace("\"","'").replace("<","-").replace(">","-").replace("|","-").replace("\n"," ")
+    
     folder_path = dirname(eml_fp)
     fp_ext = Path(eml_fp).suffix
     if ignore_ext:
